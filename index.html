@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="RutaTrack - Sistema web de seguimiento de pedidos y rutas" />
+
+  <title>RutaTrack | Seguimiento de Pedidos y Rutas</title>
+
+  <!-- Estilos principales -->
+  <link rel="stylesheet" href="./css/styles.css" />
+</head>
+<body>
+  <!-- Pantalla de login simulado -->
+  <section id="login-screen" class="login-screen">
+    <div class="login-card">
+      <div class="brand">
+        <div class="brand-icon">RT</div>
+        <div>
+          <h1>RutaTrack</h1>
+          <p>Sistema web de seguimiento de pedidos y rutas</p>
+        </div>
+      </div>
+
+      <form id="login-form" class="form">
+        <div class="form-group">
+          <label for="username">Nombre de usuario</label>
+          <input
+            type="text"
+            id="username"
+            name="username"
+            placeholder="Ej. Federico Tovar"
+          />
+          <small class="error-message" id="username-error"></small>
+        </div>
+
+        <div class="form-group">
+          <label for="user-role">Rol de acceso</label>
+          <select id="user-role" name="user-role">
+            <option value="">Seleccione un rol</option>
+            <option value="Administrador">Administrador</option>
+            <option value="Operador logístico">Operador logístico</option>
+            <option value="Repartidor">Repartidor</option>
+            <option value="Cliente">Cliente</option>
+          </select>
+          <small class="error-message" id="role-error"></small>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Ingresar al sistema</button>
+      </form>
+
+      <p class="login-note">
+        Acceso simulado para fines académicos. No se implementa autenticacion real en esta fase.
+      </p>
+    </div>
+  </section>
+
+  <!-- Aplicacion principal -->
+  <div id="app" class="app hidden">
+    <!-- Barra lateral -->
+    <aside class="sidebar">
+      <div class="sidebar-brand">
+        <div class="brand-icon small">RT</div>
+        <div>
+          <h2>RutaTrack</h2>
+          <span>Pedidos y rutas</span>
+        </div>
+      </div>
+
+      <nav class="menu" aria-label="Menú principal">
+        <button class="menu-item active" data-section="dashboard-section">
+          Dashboard
+        </button>
+        <button class="menu-item" data-section="orders-section">
+          Pedidos
+        </button>
+        <button class="menu-item" data-section="tracking-section">
+          Tracking
+        </button>
+        <button class="menu-item" data-section="drivers-section">
+          Repartidores
+        </button>
+        <button class="menu-item" data-section="assignments-section">
+          Asignaciones
+        </button>
+        <button class="menu-item" data-section="client-section">
+          Consulta cliente
+        </button>
+      </nav>
+
+      <button id="logout-btn" class="btn btn-outline logout-btn">
+        Cerrar sesion
+      </button>
+    </aside>
+
+    <!-- Contenido principal -->
+    <main class="main-content">
+      <!-- Header superior -->
+      <header class="topbar">
+        <div>
+          <h2 id="page-title">Dashboard</h2>
+          <p id="page-subtitle">Resumen general del sistema logístico</p>
+        </div>
+
+        <div class="user-info">
+          <span id="current-user">Usuario</span>
+          <strong id="current-role">Rol</strong>
+        </div>
+      </header>
+
+      <!-- Seccion Dashboard -->
+      <section id="dashboard-section" class="content-section active-section">
+        <div class="section-header">
+          <h3>Resumen operativo</h3>
+          <p>Indicadores generales de pedidos, estados y repartidores.</p>
+        </div>
+
+        <div class="stats-grid" id="stats-container">
+          <!-- Las tarjetas del dashboard se renderizarán con JavaScript -->
+        </div>
+
+        <div class="card">
+          <h3>Últimos eventos de tracking</h3>
+          <div id="recent-events">
+            <!-- Eventos mock -->
+          </div>
+        </div>
+      </section>
+
+      <!-- Seccion Pedidos -->
+      <section id="orders-section" class="content-section">
+        <div class="section-header">
+          <h3>Gestion de pedidos</h3>
+          <p>Listado, búsqueda, filtrado y creacion de pedidos.</p>
+        </div>
+
+        <div class="toolbar">
+          <input
+            type="text"
+            id="order-search"
+            placeholder="Buscar por codigo o cliente..."
+          />
+
+          <select id="order-status-filter">
+            <option value="Todos">Todos los estados</option>
+            <option value="Pendiente">Pendiente</option>
+            <option value="Asignado">Asignado</option>
+            <option value="En tránsito">En tránsito</option>
+            <option value="Entregado">Entregado</option>
+            <option value="Cancelado">Cancelado</option>
+          </select>
+
+          <button class="btn btn-primary" id="show-order-form-btn">
+            Nuevo pedido
+          </button>
+        </div>
+
+        <div id="order-form-container" class="card hidden">
+          <h3>Crear nuevo pedido</h3>
+
+          <form id="order-form" class="form grid-form">
+            <div class="form-group">
+              <label for="order-code">Codigo del pedido</label>
+              <input type="text" id="order-code" placeholder="Ej. PED-006" />
+              <small class="error-message" id="order-code-error"></small>
+            </div>
+
+            <div class="form-group">
+              <label for="order-client">Cliente</label>
+              <input type="text" id="order-client" placeholder="Nombre del cliente" />
+              <small class="error-message" id="order-client-error"></small>
+            </div>
+
+            <div class="form-group">
+              <label for="order-origin">Direccion de origen</label>
+              <input type="text" id="order-origin" placeholder="Ej. Bodega Norte" />
+              <small class="error-message" id="order-origin-error"></small>
+            </div>
+
+            <div class="form-group">
+              <label for="order-destination">Direccion de destino</label>
+              <input type="text" id="order-destination" placeholder="Ej. Calle 80 # 45-20" />
+              <small class="error-message" id="order-destination-error"></small>
+            </div>
+
+            <div class="form-group">
+              <label for="order-priority">Prioridad</label>
+              <select id="order-priority">
+                <option value="">Seleccione prioridad</option>
+                <option value="Alta">Alta</option>
+                <option value="Media">Media</option>
+                <option value="Baja">Baja</option>
+              </select>
+              <small class="error-message" id="order-priority-error"></small>
+            </div>
+
+            <div class="form-group full-width">
+              <label for="order-description">Descripcion</label>
+              <textarea
+                id="order-description"
+                rows="3"
+                placeholder="Descripcion breve del pedido"
+              ></textarea>
+              <small class="error-message" id="order-description-error"></small>
+            </div>
+
+            <div class="form-actions full-width">
+              <button type="button" class="btn btn-outline" id="cancel-order-form-btn">
+                Cancelar
+              </button>
+              <button type="submit" class="btn btn-primary">
+                Guardar pedido
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <div class="card">
+          <div class="table-responsive">
+            <table>
+              <thead>
+                <tr>
+                  <th>Codigo</th>
+                  <th>Cliente</th>
+                  <th>Origen</th>
+                  <th>Destino</th>
+                  <th>Estado</th>
+                  <th>Prioridad</th>
+                  <th>Repartidor</th>
+                  <th>Accion</th>
+                </tr>
+              </thead>
+              <tbody id="orders-table-body">
+                <!-- Pedidos mock -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- Seccion Tracking -->
+      <section id="tracking-section" class="content-section">
+        <div class="section-header">
+          <h3>Tracking de pedido</h3>
+          <p>Consulta el estado actual, ruta simulada e historial de eventos.</p>
+        </div>
+
+        <div id="tracking-detail" class="card">
+          <p class="empty-state">
+            Seleccione un pedido desde la seccion de pedidos para ver su tracking.
+          </p>
+        </div>
+      </section>
+
+      <!-- Seccion Repartidores -->
+      <section id="drivers-section" class="content-section">
+        <div class="section-header">
+          <h3>Gestion de repartidores</h3>
+          <p>Consulta disponibilidad, vehículo y capacidad de cada repartidor.</p>
+        </div>
+
+        <div class="card">
+          <div class="table-responsive">
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Nombre</th>
+                  <th>Teléfono</th>
+                  <th>Vehículo</th>
+                  <th>Capacidad</th>
+                  <th>Estado</th>
+                </tr>
+              </thead>
+              <tbody id="drivers-table-body">
+                <!-- Repartidores mock -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- Seccion Asignaciones -->
+      <section id="assignments-section" class="content-section">
+        <div class="section-header">
+          <h3>Asignacion de pedidos</h3>
+          <p>Asigna pedidos pendientes a repartidores disponibles.</p>
+        </div>
+
+        <div class="card">
+          <form id="assignment-form" class="form grid-form">
+            <div class="form-group">
+              <label for="assignment-order">Pedido pendiente</label>
+              <select id="assignment-order">
+                <option value="">Seleccione un pedido</option>
+              </select>
+              <small class="error-message" id="assignment-order-error"></small>
+            </div>
+
+            <div class="form-group">
+              <label for="assignment-driver">Repartidor disponible</label>
+              <select id="assignment-driver">
+                <option value="">Seleccione un repartidor</option>
+              </select>
+              <small class="error-message" id="assignment-driver-error"></small>
+            </div>
+
+            <div class="form-actions full-width">
+              <button type="submit" class="btn btn-primary">
+                Asignar pedido
+              </button>
+            </div>
+          </form>
+        </div>
+      </section>
+
+      <!-- Seccion Consulta Cliente -->
+      <section id="client-section" class="content-section">
+        <div class="section-header">
+          <h3>Consulta de estado del pedido</h3>
+          <p>Consulta pública para que el cliente revise el estado de su pedido.</p>
+        </div>
+
+        <div class="card">
+          <form id="client-search-form" class="form client-search">
+            <div class="form-group">
+              <label for="client-order-code">Codigo del pedido</label>
+              <input
+                type="text"
+                id="client-order-code"
+                placeholder="Ej. PED-001"
+              />
+              <small class="error-message" id="client-order-code-error"></small>
+            </div>
+
+            <button type="submit" class="btn btn-primary">
+              Consultar pedido
+            </button>
+          </form>
+        </div>
+
+        <div id="client-result" class="card hidden">
+          <!-- Resultado de consulta cliente -->
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Scripts -->
+  <script src="./js/data.js"></script>
+  <script src="./js/validations.js"></script>
+  <script src="./js/navigation.js"></script>
+  <script src="./js/app.js"></script>
+</body>
+</html>
