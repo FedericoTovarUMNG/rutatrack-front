@@ -65,6 +65,50 @@ El caso de estudio corresponde a una aplicación web para el seguimiento de:
 
 ---
 
+## Instalación y ejecución del proyecto
+
+### 1. Clonar o descargar el proyecto
+
+Ubicarse en la carpeta principal del proyecto.
+
+### 2. Entrar a la carpeta del back-end
+
+cd backend
+
+### 3. Instalar dependencias
+
+npm.cmd install
+
+O si se usa CMD/Git Bash:
+
+npm install
+
+### 4. Ejecutar el servidor
+
+npm.cmd run dev
+
+O:
+
+npm run dev
+
+El servidor se ejecuta en:
+
+http://localhost:3000
+
+### 5. Probar API
+
+Abrir en el navegador:
+
+http://localhost:3000/api/health
+
+### 6. Abrir el front-end
+
+Abrir el archivo:
+
+index.html
+
+Luego iniciar sesión con uno de los usuarios de prueba.
+
 ## Estructura del proyecto
 
 ```text
