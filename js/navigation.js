@@ -41,12 +41,17 @@ const sectionInfo = {
  * Inicia sesion de forma simulada.
  * No se implementa autenticacion real en esta fase.
  */
-function iniciarSesionSimulada() {
+async function iniciarSesionSimulada() {
   const usernameInput = document.getElementById("username");
-  const roleInput = document.getElementById("user-role");
+  const passwordInput = document.getElementById("password");
 
-  usuarioActual.nombre = usernameInput.value.trim();
-  usuarioActual.rol = roleInput.value;
+  const loginResponse = await apiLogin(
+    usernameInput.value.trim(),
+    passwordInput.value.trim()
+  );
+
+  usuarioActual.nombre = loginResponse.user.nombre;
+  usuarioActual.rol = loginResponse.user.rol;
 
   document.getElementById("current-user").textContent = usuarioActual.nombre;
   document.getElementById("current-role").textContent = usuarioActual.rol;
@@ -198,17 +203,28 @@ function configurarEventosNavegacion() {
 function configurarLogin() {
   const loginForm = document.getElementById("login-form");
 
-  loginForm.addEventListener("submit", (event) => {
+  loginForm.addEventListener("submit", async (event) => {
     event.preventDefault();
 
     if (!validarLogin()) {
       return;
     }
 
-    iniciarSesionSimulada();
+    try {
+      await iniciarSesionSimulada();
 
-    if (typeof inicializarAplicacion === "function") {
-      inicializarAplicacion();
+      if (typeof inicializarAplicacion === "function") {
+        await inicializarAplicacion();
+      }
+    } catch (error) {
+      const passwordInput = document.getElementById("password");
+      const passwordError = document.getElementById("password-error");
+
+      mostrarError(
+        passwordInput,
+        passwordError,
+        error.message || "No fue posible iniciar sesión."
+      );
     }
   });
 }

@@ -803,4 +803,19 @@ tbody tr:hover {
   .brand {
     align-items: flex-start;
   }
+
+  .login-users {
+    margin-top: -4px;
+    padding: 12px;
+    border-radius: 12px;
+    background: #f8fafc;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    font-size: 0.82rem;
+    line-height: 1.5;
+  }
+
+  .login-users strong {
+    color: var(--secondary);
+  }
 }

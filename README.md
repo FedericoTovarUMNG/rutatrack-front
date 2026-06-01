@@ -2,53 +2,72 @@
 
 ## Autor
 
-Federico Alejandro Tovar Prada
-Universidad Militar Nueva Granada
-Asignatura: Ingeniería Web
-Fase 2: Implementacion del Front-end
+Federico Alejandro Tovar Prada  
+Universidad Militar Nueva Granada  
+Asignatura: Ingeniería Web  
+Actividad 3: Implementación del Back-end, integración con Front-end y base de datos
 
-## Descripcion del proyecto
+---
 
-RutaTrack es una aplicacion web front-end desarrollada como parte de la Fase 2 de la asignatura Ingeniería Web.
+## Descripción del proyecto
 
-El sistema permite simular la gestion, asignacion y seguimiento de pedidos mediante una interfaz web funcional. La aplicacion trabaja con datos mock en JavaScript, por lo tanto no requiere conexion a una base de datos ni a un back-end real en esta fase.
+RutaTrack es una aplicación web desarrollada para el caso de estudio de seguimiento de pedidos, rutas, repartidores y tracking.
+
+En esta fase se implementó una aplicación web funcional integrada por:
+
+- Front-end con HTML5, CSS3 y JavaScript.
+- Back-end con Node.js y Express.
+- API REST para la comunicación entre capas.
+- Base de datos SQLite para persistencia.
+- Autenticación básica por usuario y contraseña.
+- Operaciones CRUD sobre pedidos.
+- Lógica de negocio para asignaciones, estados e historial de tracking.
+
+El sistema permite gestionar pedidos, asignarlos a repartidores disponibles, consultar el historial de eventos y realizar seguimiento del estado del pedido.
+
+---
 
 ## Caso de estudio
 
-El caso de estudio corresponde a una aplicacion web para el seguimiento de pedidos, rutas, repartidores y tracking.
+El caso de estudio corresponde a una aplicación web para el seguimiento de:
 
-El sistema permite:
+- Pedidos.
+- Rutas.
+- Repartidores.
+- Tracking.
+- Historial de eventos.
+- Consulta de estado por parte del cliente.
 
-- Gestionar pedidos.
-- Consultar pedidos registrados.
-- Asignar pedidos pendientes a repartidores disponibles.
-- Visualizar el tracking de un pedido.
-- Consultar historial de eventos.
-- Gestionar visualmente repartidores.
-- Consultar el estado de un pedido desde una vista de cliente.
-- Simular control de acceso por roles.
-
-## Roles simulados
-
-La aplicacion cuenta con acceso simulado para los siguientes roles:
-
-- Administrador.
-- Operador logístico.
-- Repartidor.
-- Cliente.
-
-Este acceso no corresponde a autenticacion real, sino a una simulacion de navegacion y permisos visuales para fines académicos.
+---
 
 ## Tecnologías utilizadas
+
+### Front-end
 
 - HTML5.
 - CSS3.
 - JavaScript.
-- Datos mock en JavaScript.
+- Fetch API.
 - Diseño responsive mediante CSS y media queries.
+
+### Back-end
+
+- Node.js.
+- Express.
+- CORS.
+- SQLite3.
+- Nodemon para desarrollo.
+
+### Base de datos
+
+- SQLite.
+- Archivo local: `backend/rutatrack.db`.
+
+---
 
 ## Estructura del proyecto
 
+```text
 rutatrack-front/
 │
 ├── index.html
@@ -58,14 +77,17 @@ rutatrack-front/
 │   └── styles.css
 │
 ├── js/
-│   ├── data.js
+│   ├── api.js
 │   ├── app.js
+│   ├── data.js
 │   ├── navigation.js
 │   └── validations.js
 │
-└── assets/
-    └── img/
-
-## Enlace de GitHub Pages:
-
-https://federicotovarumng.github.io/rutatrack-front/
+├── assets/
+│
+└── backend/
+    ├── database.js
+    ├── package.json
+    ├── package-lock.json
+    ├── rutatrack.db
+    └── server.js

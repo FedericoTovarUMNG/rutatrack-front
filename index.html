@@ -22,29 +22,36 @@
         </div>
       </div>
 
-      <form id="login-form" class="form">
+      <form id="login-form" class="form" autocomplete="off">
         <div class="form-group">
-          <label for="username">Nombre de usuario</label>
-          <input
-            type="text"
-            id="username"
-            name="username"
-            placeholder="Ej. Federico Tovar"
-          />
-          <small class="error-message" id="username-error"></small>
-        </div>
+        <label for="username">Usuario</label>
+        <input
+          type="text"
+          id="username"
+          name="username"
+          placeholder="Ej. admin"
+        />
+        <small class="error-message" id="username-error"></small>
+      </div>
 
-        <div class="form-group">
-          <label for="user-role">Rol de acceso</label>
-          <select id="user-role" name="user-role">
-            <option value="">Seleccione un rol</option>
-            <option value="Administrador">Administrador</option>
-            <option value="Operador logístico">Operador logístico</option>
-            <option value="Repartidor">Repartidor</option>
-            <option value="Cliente">Cliente</option>
-          </select>
-          <small class="error-message" id="role-error"></small>
-        </div>
+      <div class="form-group">
+        <label for="password">Contraseña</label>
+        <input
+          type="password"
+          id="password"
+          name="password"
+          placeholder="Ej. admin123"
+        />
+        <small class="error-message" id="password-error"></small>
+      </div>
+
+      <div class="login-users">
+        <p><strong>Usuarios de prueba:</strong></p>
+        <p>admin / admin123</p>
+        <p>operador / operador123</p>
+        <p>repartidor / repartidor123</p>
+        <p>cliente / cliente123</p>
+      </div>
 
         <button type="submit" class="btn btn-primary">Ingresar al sistema</button>
       </form>
@@ -347,6 +354,7 @@
   </div>
 
   <!-- Scripts -->
+  <script src="./js/api.js"></script>
   <script src="./js/data.js"></script>
   <script src="./js/validations.js"></script>
   <script src="./js/navigation.js"></script>

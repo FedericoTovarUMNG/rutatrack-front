@@ -1,23 +1,34 @@
 /* =========================
-   RutaTrack - Logica principal
-   Renderizado e interaccion de la aplicacion
+   RutaTrack - Lógica principal
+   Integración Front-end con Back-end REST + SQLite
    ========================= */
 
+let pedidosApi = [];
+let repartidoresApi = [];
+let pedidoSeleccionado = null;
+
 /**
- * Inicializa la aplicacion cuando el usuario inicia sesion.
+ * Inicializa la aplicación cuando el usuario inicia sesión.
  */
-function inicializarAplicacion() {
+async function inicializarAplicacion() {
+  await cargarDatosIniciales();
   renderDashboard();
   renderPedidos();
   renderRepartidores();
   renderSelectAsignaciones();
-  renderEventosRecientes();
+  await renderEventosRecientes();
+}
+
+/**
+ * Carga pedidos y repartidores desde la API.
+ */
+async function cargarDatosIniciales() {
+  pedidosApi = await apiListarPedidos();
+  repartidoresApi = await apiListarRepartidores();
 }
 
 /**
  * Devuelve la clase CSS correspondiente al estado de un pedido.
- * @param {string} estado
- * @returns {string}
  */
 function obtenerClaseBadgePedido(estado) {
   const clases = {
@@ -33,8 +44,6 @@ function obtenerClaseBadgePedido(estado) {
 
 /**
  * Devuelve la clase CSS correspondiente al estado de un repartidor.
- * @param {string} estado
- * @returns {string}
  */
 function obtenerClaseBadgeRepartidor(estado) {
   const clases = {
@@ -47,22 +56,29 @@ function obtenerClaseBadgeRepartidor(estado) {
 }
 
 /**
+ * Muestra mensajes simples de respuesta.
+ */
+function mostrarAlerta(mensaje, tipo = "info") {
+  alert(`${tipo.toUpperCase()}: ${mensaje}`);
+}
+
+/**
  * Renderiza las tarjetas del dashboard.
  */
 function renderDashboard() {
   const statsContainer = document.getElementById("stats-container");
 
-  const totalPedidos = pedidos.length;
-  const pedidosPendientes = pedidos.filter(
+  const totalPedidos = pedidosApi.length;
+  const pedidosPendientes = pedidosApi.filter(
     (pedido) => pedido.estado === ESTADOS_PEDIDO.PENDIENTE
   ).length;
-  const pedidosTransito = pedidos.filter(
+  const pedidosTransito = pedidosApi.filter(
     (pedido) => pedido.estado === ESTADOS_PEDIDO.EN_TRANSITO
   ).length;
-  const pedidosEntregados = pedidos.filter(
+  const pedidosEntregados = pedidosApi.filter(
     (pedido) => pedido.estado === ESTADOS_PEDIDO.ENTREGADO
   ).length;
-  const repartidoresActivos = repartidores.filter(
+  const repartidoresActivos = repartidoresApi.filter(
     (repartidor) => repartidor.estado !== ESTADOS_REPARTIDOR.INACTIVO
   ).length;
 
@@ -95,84 +111,76 @@ function renderDashboard() {
 }
 
 /**
- * Renderiza los eventos recientes del dashboard.
+ * Renderiza eventos recientes del dashboard.
  */
-function renderEventosRecientes() {
+async function renderEventosRecientes() {
   const recentEventsContainer = document.getElementById("recent-events");
 
-  const eventos = pedidos
-    .flatMap((pedido) =>
-      pedido.historial.map((evento) => ({
-        codigo: pedido.codigo,
-        cliente: pedido.cliente,
-        ...evento
-      }))
-    )
-    .slice(-5)
-    .reverse();
+  try {
+    const pedidosConHistorial = await Promise.all(
+      pedidosApi.slice(0, 5).map((pedido) => apiConsultarPedido(pedido.codigo))
+    );
 
-  if (eventos.length === 0) {
+    const eventos = pedidosConHistorial
+      .flatMap((pedido) =>
+        pedido.historial.map((evento) => ({
+          codigo: pedido.codigo,
+          cliente: pedido.cliente,
+          ...evento
+        }))
+      )
+      .sort((a, b) => b.id - a.id)
+      .slice(0, 5);
+
+    if (eventos.length === 0) {
+      recentEventsContainer.innerHTML = `
+        <p class="empty-state">No hay eventos recientes registrados.</p>
+      `;
+      return;
+    }
+
     recentEventsContainer.innerHTML = `
-      <p class="empty-state">No hay eventos recientes registrados.</p>
+      <div class="event-list">
+        ${eventos
+          .map(
+            (evento) => `
+            <div class="event-item">
+              <strong>${evento.codigo} - ${evento.evento}</strong>
+              <span>${evento.descripcion}</span><br />
+              <span>${evento.fecha} | Cliente: ${evento.cliente}</span>
+            </div>
+          `
+          )
+          .join("")}
+      </div>
     `;
-    return;
+  } catch (error) {
+    recentEventsContainer.innerHTML = `
+      <p class="empty-state">No fue posible cargar los eventos recientes.</p>
+    `;
   }
-
-  recentEventsContainer.innerHTML = `
-    <div class="event-list">
-      ${eventos
-        .map(
-          (evento) => `
-          <div class="event-item">
-            <strong>${evento.codigo} - ${evento.evento}</strong>
-            <span>${evento.descripcion}</span><br />
-            <span>${evento.fecha} | Cliente: ${evento.cliente}</span>
-          </div>
-        `
-        )
-        .join("")}
-    </div>
-  `;
 }
 
 /**
- * Renderiza la tabla de pedidos usando búsqueda y filtro.
+ * Renderiza la tabla de pedidos.
  */
-function renderPedidos() {
+function renderPedidos(lista = pedidosApi) {
   const ordersTableBody = document.getElementById("orders-table-body");
-  const searchInput = document.getElementById("order-search");
-  const statusFilter = document.getElementById("order-status-filter");
 
-  const busqueda = searchInput ? searchInput.value.trim().toLowerCase() : "";
-  const estadoSeleccionado = statusFilter ? statusFilter.value : "Todos";
-
-  let pedidosFiltrados = pedidos.filter((pedido) => {
-    const coincideBusqueda =
-      pedido.codigo.toLowerCase().includes(busqueda) ||
-      pedido.cliente.toLowerCase().includes(busqueda);
-
-    const coincideEstado =
-      estadoSeleccionado === "Todos" || pedido.estado === estadoSeleccionado;
-
-    return coincideBusqueda && coincideEstado;
-  });
-
-  if (pedidosFiltrados.length === 0) {
+  if (lista.length === 0) {
     ordersTableBody.innerHTML = `
       <tr>
         <td colspan="8">
-          <p class="empty-state">No se encontraron pedidos con los filtros aplicados.</p>
+          <p class="empty-state">No se encontraron pedidos.</p>
         </td>
       </tr>
     `;
     return;
   }
 
-  ordersTableBody.innerHTML = pedidosFiltrados
-    .map((pedido) => {
-      const repartidor = obtenerRepartidorPorId(pedido.repartidorId);
-
-      return `
+  ordersTableBody.innerHTML = lista
+    .map(
+      (pedido) => `
         <tr>
           <td><strong>${pedido.codigo}</strong></td>
           <td>${pedido.cliente}</td>
@@ -184,15 +192,21 @@ function renderPedidos() {
             </span>
           </td>
           <td>${pedido.prioridad}</td>
-          <td>${repartidor ? repartidor.nombre : "Sin asignar"}</td>
+          <td>${pedido.repartidorNombre || "Sin asignar"}</td>
           <td>
-            <button class="btn btn-outline" onclick="verTrackingPedido('${pedido.codigo}')">
-              Ver tracking
-            </button>
+            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+              <button class="btn btn-outline" onclick="verTrackingPedido('${pedido.codigo}')">
+                Ver tracking
+              </button>
+    
+              <button class="btn btn-outline" onclick="eliminarPedido(${pedido.id})">
+                Eliminar
+              </button>
+            </div>
           </td>
         </tr>
-      `;
-    })
+      `
+    )
     .join("");
 }
 
@@ -202,7 +216,7 @@ function renderPedidos() {
 function renderRepartidores() {
   const driversTableBody = document.getElementById("drivers-table-body");
 
-  driversTableBody.innerHTML = repartidores
+  driversTableBody.innerHTML = repartidoresApi
     .map(
       (repartidor) => `
       <tr>
@@ -223,17 +237,17 @@ function renderRepartidores() {
 }
 
 /**
- * Renderiza los selectores de pedidos pendientes y repartidores disponibles.
+ * Renderiza los selectores de asignación.
  */
 function renderSelectAsignaciones() {
   const orderSelect = document.getElementById("assignment-order");
   const driverSelect = document.getElementById("assignment-driver");
 
-  const pedidosPendientes = pedidos.filter(
+  const pedidosPendientes = pedidosApi.filter(
     (pedido) => pedido.estado === ESTADOS_PEDIDO.PENDIENTE
   );
 
-  const repartidoresDisponibles = repartidores.filter(
+  const repartidoresDisponibles = repartidoresApi.filter(
     (repartidor) => repartidor.estado === ESTADOS_REPARTIDOR.DISPONIBLE
   );
 
@@ -265,25 +279,49 @@ function renderSelectAsignaciones() {
 }
 
 /**
- * Muestra el detalle y tracking de un pedido.
- * @param {string} codigo
+ * Filtra pedidos consultando la API.
  */
-function verTrackingPedido(codigo) {
-  const pedido = obtenerPedidoPorCodigo(codigo);
+async function filtrarPedidos() {
+  const searchInput = document.getElementById("order-search");
+  const statusFilter = document.getElementById("order-status-filter");
 
-  if (!pedido) return;
+  const busqueda = searchInput.value.trim();
+  const estado = statusFilter.value;
 
-  renderTrackingPedido(pedido);
-  mostrarSeccion("tracking-section");
+  try {
+    const pedidosFiltrados = await apiListarPedidos(busqueda, estado);
+    renderPedidos(pedidosFiltrados);
+  } catch (error) {
+    mostrarAlerta("No fue posible filtrar pedidos: " + error.message, "error");
+  }
 }
 
 /**
- * Renderiza la vista de tracking de un pedido.
- * @param {object} pedido
+ * Consulta y muestra el tracking de un pedido.
+ */
+async function verTrackingPedido(codigo) {
+  try {
+    pedidoSeleccionado = await apiConsultarPedido(codigo);
+    renderTrackingPedido(pedidoSeleccionado);
+    mostrarSeccion("tracking-section");
+  } catch (error) {
+    mostrarAlerta(error.message, "error");
+  }
+}
+
+/**
+ * Renderiza la vista de tracking.
  */
 function renderTrackingPedido(pedido) {
   const trackingDetail = document.getElementById("tracking-detail");
-  const repartidor = obtenerRepartidorPorId(pedido.repartidorId);
+
+  const progreso = {
+    [ESTADOS_PEDIDO.PENDIENTE]: 10,
+    [ESTADOS_PEDIDO.ASIGNADO]: 35,
+    [ESTADOS_PEDIDO.EN_TRANSITO]: 70,
+    [ESTADOS_PEDIDO.ENTREGADO]: 100,
+    [ESTADOS_PEDIDO.CANCELADO]: 0
+  };
 
   trackingDetail.innerHTML = `
     <div class="tracking-grid">
@@ -317,7 +355,7 @@ function renderTrackingPedido(pedido) {
 
           <div class="summary-item">
             <span>Repartidor</span>
-            <strong>${repartidor ? repartidor.nombre : "Sin asignar"}</strong>
+            <strong>${pedido.repartidor ? pedido.repartidor.nombre : "Sin asignar"}</strong>
           </div>
 
           <div class="summary-item">
@@ -332,16 +370,29 @@ function renderTrackingPedido(pedido) {
 
           <div class="route-line">
             <div class="route-point">A</div>
-            <div class="route-progress"></div>
+            <div class="route-progress">
+              <div style="width: ${progreso[pedido.estado]}%"></div>
+            </div>
             <div class="route-point">B</div>
           </div>
         </div>
 
         <br />
 
-        <button class="btn btn-primary" onclick="avanzarEstadoPedido('${pedido.codigo}')">
-          Avanzar estado
-        </button>
+        ${
+          pedido.estado !== ESTADOS_PEDIDO.ENTREGADO &&
+          pedido.estado !== ESTADOS_PEDIDO.CANCELADO
+            ? `
+              <button class="btn btn-primary" onclick="avanzarEstadoPedido()">
+                Avanzar estado
+              </button>
+            `
+            : `
+              <button class="btn btn-outline" disabled>
+                Estado final alcanzado
+              </button>
+            `
+        }
       </div>
 
       <div>
@@ -366,61 +417,29 @@ function renderTrackingPedido(pedido) {
 }
 
 /**
- * Avanza el estado de un pedido de forma simulada.
- * @param {string} codigo
+ * Avanza el estado de un pedido usando la API.
  */
-function avanzarEstadoPedido(codigo) {
-  const pedido = obtenerPedidoPorCodigo(codigo);
+async function avanzarEstadoPedido() {
+  if (!pedidoSeleccionado) return;
 
-  if (!pedido) return;
+  try {
+    const respuesta = await apiAvanzarEstadoPedido(pedidoSeleccionado.id);
 
-  if (pedido.estado === ESTADOS_PEDIDO.CANCELADO) {
-    alert("No se puede avanzar un pedido cancelado.");
-    return;
+    pedidoSeleccionado = respuesta.data;
+
+    await inicializarAplicacion();
+    renderTrackingPedido(pedidoSeleccionado);
+
+    mostrarAlerta(respuesta.message, "success");
+  } catch (error) {
+    mostrarAlerta(error.message, "error");
   }
-
-  if (pedido.estado === ESTADOS_PEDIDO.ENTREGADO) {
-    alert("Este pedido ya fue entregado.");
-    return;
-  }
-
-  if (pedido.estado === ESTADOS_PEDIDO.PENDIENTE) {
-    alert("Primero debe asignarse un repartidor al pedido.");
-    return;
-  }
-
-  if (pedido.estado === ESTADOS_PEDIDO.ASIGNADO) {
-    pedido.estado = ESTADOS_PEDIDO.EN_TRANSITO;
-    pedido.historial.push({
-      evento: "Pedido en tránsito",
-      descripcion: "El repartidor inicio la ruta hacia el destino.",
-      fecha: obtenerFechaActualSimulada()
-    });
-  } else if (pedido.estado === ESTADOS_PEDIDO.EN_TRANSITO) {
-    pedido.estado = ESTADOS_PEDIDO.ENTREGADO;
-    pedido.historial.push({
-      evento: "Pedido entregado",
-      descripcion: "El pedido fue entregado correctamente al cliente.",
-      fecha: obtenerFechaActualSimulada()
-    });
-
-    if (pedido.repartidorId) {
-      const repartidor = obtenerRepartidorPorId(pedido.repartidorId);
-      if (repartidor) {
-        repartidor.estado = ESTADOS_REPARTIDOR.DISPONIBLE;
-      }
-    }
-  }
-
-  renderTrackingPedido(pedido);
-  inicializarAplicacion();
 }
 
 /**
- * Crea un nuevo pedido desde el formulario.
- * @param {Event} event
+ * Crea un pedido nuevo usando la API.
  */
-function crearPedido(event) {
+async function crearPedido(event) {
   event.preventDefault();
 
   if (!validarFormularioPedido()) {
@@ -428,77 +447,91 @@ function crearPedido(event) {
   }
 
   const nuevoPedido = {
-    id: generarNuevoPedidoId(),
     codigo: document.getElementById("order-code").value.trim(),
     cliente: document.getElementById("order-client").value.trim(),
     origen: document.getElementById("order-origin").value.trim(),
     destino: document.getElementById("order-destination").value.trim(),
     descripcion: document.getElementById("order-description").value.trim(),
-    estado: ESTADOS_PEDIDO.PENDIENTE,
-    prioridad: document.getElementById("order-priority").value,
-    repartidorId: null,
-    fechaCreacion: obtenerFechaActualSimulada(),
-    historial: [
-      {
-        evento: "Pedido creado",
-        descripcion: "El pedido fue registrado y está pendiente de asignacion.",
-        fecha: obtenerFechaActualSimulada()
-      }
-    ]
+    prioridad: document.getElementById("order-priority").value
   };
 
-  pedidos.push(nuevoPedido);
+  try {
+    const respuesta = await apiCrearPedido(nuevoPedido);
 
-  document.getElementById("order-form").reset();
-  document.getElementById("order-form-container").classList.add("hidden");
+    document.getElementById("order-form").reset();
+    document.getElementById("order-form-container").classList.add("hidden");
 
-  inicializarAplicacion();
+    await inicializarAplicacion();
 
-  alert("Pedido creado correctamente.");
+    mostrarAlerta(respuesta.message, "success");
+  } catch (error) {
+    mostrarAlerta(error.message, "error");
+  }
 }
 
 /**
- * Asigna un pedido pendiente a un repartidor disponible.
- * @param {Event} event
+ * Elimina un pedido usando la API.
  */
-function asignarPedido(event) {
-  event.preventDefault();
+async function eliminarPedido(pedidoId) {
+  const confirmar = confirm(
+    "¿Está seguro de eliminar este pedido? Esta acción también eliminará su historial."
+  );
 
-  if (!validarFormularioAsignacion()) {
+  if (!confirmar) {
     return;
   }
+
+  try {
+    const respuesta = await apiEliminarPedido(pedidoId);
+
+    await inicializarAplicacion();
+
+    const trackingDetail = document.getElementById("tracking-detail");
+    if (trackingDetail) {
+      trackingDetail.innerHTML = `
+        <p class="empty-state">
+          Seleccione un pedido desde la sección de pedidos para ver su tracking.
+        </p>
+      `;
+    }
+
+    mostrarAlerta(respuesta.message, "success");
+  } catch (error) {
+    mostrarAlerta(error.message, "error");
+  }
+}
+
+/**
+ * Asigna pedido a repartidor usando la API.
+ */
+async function asignarPedido(event) {
+  event.preventDefault();
 
   const pedidoId = Number(document.getElementById("assignment-order").value);
   const repartidorId = Number(document.getElementById("assignment-driver").value);
 
-  const pedido = pedidos.find((item) => item.id === pedidoId);
-  const repartidor = repartidores.find((item) => item.id === repartidorId);
+  if (!pedidoId || !repartidorId) {
+    mostrarAlerta("Debe seleccionar un pedido y un repartidor.", "error");
+    return;
+  }
 
-  if (!pedido || !repartidor) return;
+  try {
+    const respuesta = await apiAsignarPedido(pedidoId, repartidorId);
 
-  pedido.repartidorId = repartidor.id;
-  pedido.estado = ESTADOS_PEDIDO.ASIGNADO;
+    document.getElementById("assignment-form").reset();
 
-  repartidor.estado = ESTADOS_REPARTIDOR.OCUPADO;
+    await inicializarAplicacion();
 
-  pedido.historial.push({
-    evento: "Pedido asignado",
-    descripcion: `El pedido fue asignado al repartidor ${repartidor.nombre}.`,
-    fecha: obtenerFechaActualSimulada()
-  });
-
-  document.getElementById("assignment-form").reset();
-
-  inicializarAplicacion();
-
-  alert("Pedido asignado correctamente.");
+    mostrarAlerta(respuesta.message, "success");
+  } catch (error) {
+    mostrarAlerta(error.message, "error");
+  }
 }
 
 /**
- * Consulta el estado de un pedido desde la pantalla del cliente.
- * @param {Event} event
+ * Consulta de pedido para cliente.
  */
-function consultarPedidoCliente(event) {
+async function consultarPedidoCliente(event) {
   event.preventDefault();
 
   if (!validarConsultaCliente()) {
@@ -506,82 +539,80 @@ function consultarPedidoCliente(event) {
   }
 
   const codigo = document.getElementById("client-order-code").value.trim();
-  const pedido = obtenerPedidoPorCodigo(codigo);
   const resultContainer = document.getElementById("client-result");
 
-  if (!pedido) {
+  try {
+    const pedido = await apiConsultarPedido(codigo);
+
+    resultContainer.classList.remove("hidden");
+    resultContainer.innerHTML = `
+      <h3>Resultado de consulta</h3>
+
+      <div class="client-result-card">
+        <div class="summary-item">
+          <span>Código</span>
+          <strong>${pedido.codigo}</strong>
+        </div>
+
+        <div class="summary-item">
+          <span>Estado</span>
+          <strong>
+            <span class="badge ${obtenerClaseBadgePedido(pedido.estado)}">
+              ${pedido.estado}
+            </span>
+          </strong>
+        </div>
+
+        <div class="summary-item">
+          <span>Cliente</span>
+          <strong>${pedido.cliente}</strong>
+        </div>
+
+        <div class="summary-item">
+          <span>Repartidor</span>
+          <strong>${pedido.repartidor ? pedido.repartidor.nombre : "Pendiente de asignación"}</strong>
+        </div>
+
+        <div class="summary-item">
+          <span>Origen</span>
+          <strong>${pedido.origen}</strong>
+        </div>
+
+        <div class="summary-item">
+          <span>Destino</span>
+          <strong>${pedido.destino}</strong>
+        </div>
+      </div>
+
+      <br />
+
+      <h3>Historial del pedido</h3>
+      <div class="timeline">
+        ${pedido.historial
+          .map(
+            (evento) => `
+            <div class="timeline-item">
+              <strong>${evento.evento}</strong>
+              <span>${evento.descripcion}</span><br />
+              <span>${evento.fecha}</span>
+            </div>
+          `
+          )
+          .join("")}
+      </div>
+    `;
+  } catch (error) {
     resultContainer.classList.remove("hidden");
     resultContainer.innerHTML = `
       <div class="alert alert-error">
-        No se encontro ningún pedido con el codigo ingresado.
+        ${error.message}
       </div>
     `;
-    return;
   }
-
-  const repartidor = obtenerRepartidorPorId(pedido.repartidorId);
-
-  resultContainer.classList.remove("hidden");
-  resultContainer.innerHTML = `
-    <h3>Resultado de consulta</h3>
-
-    <div class="client-result-card">
-      <div class="summary-item">
-        <span>Codigo</span>
-        <strong>${pedido.codigo}</strong>
-      </div>
-
-      <div class="summary-item">
-        <span>Estado</span>
-        <strong>
-          <span class="badge ${obtenerClaseBadgePedido(pedido.estado)}">
-            ${pedido.estado}
-          </span>
-        </strong>
-      </div>
-
-      <div class="summary-item">
-        <span>Cliente</span>
-        <strong>${pedido.cliente}</strong>
-      </div>
-
-      <div class="summary-item">
-        <span>Repartidor</span>
-        <strong>${repartidor ? repartidor.nombre : "Pendiente de asignacion"}</strong>
-      </div>
-
-      <div class="summary-item">
-        <span>Origen</span>
-        <strong>${pedido.origen}</strong>
-      </div>
-
-      <div class="summary-item">
-        <span>Destino</span>
-        <strong>${pedido.destino}</strong>
-      </div>
-    </div>
-
-    <br />
-
-    <h3>Historial del pedido</h3>
-    <div class="timeline">
-      ${pedido.historial
-        .map(
-          (evento) => `
-          <div class="timeline-item">
-            <strong>${evento.evento}</strong>
-            <span>${evento.descripcion}</span><br />
-            <span>${evento.fecha}</span>
-          </div>
-        `
-        )
-        .join("")}
-    </div>
-  `;
 }
 
 /**
- * Muestra u oculta el formulario de nuevo pedido.
+ * Muestra u oculta formulario de nuevo pedido.
  */
 function configurarFormularioPedido() {
   const showFormBtn = document.getElementById("show-order-form-btn");
@@ -602,18 +633,18 @@ function configurarFormularioPedido() {
 }
 
 /**
- * Configura filtros y búsqueda de pedidos.
+ * Configura filtros de pedidos.
  */
 function configurarFiltrosPedidos() {
   const searchInput = document.getElementById("order-search");
   const statusFilter = document.getElementById("order-status-filter");
 
-  searchInput.addEventListener("input", renderPedidos);
-  statusFilter.addEventListener("change", renderPedidos);
+  searchInput.addEventListener("input", filtrarPedidos);
+  statusFilter.addEventListener("change", filtrarPedidos);
 }
 
 /**
- * Configura los formularios principales.
+ * Configura formularios principales.
  */
 function configurarFormularios() {
   const assignmentForm = document.getElementById("assignment-form");
@@ -624,7 +655,7 @@ function configurarFormularios() {
 }
 
 /**
- * Punto inicial de la aplicacion.
+ * Punto inicial de la aplicación.
  */
 document.addEventListener("DOMContentLoaded", () => {
   configurarLogin();

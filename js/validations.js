@@ -49,27 +49,31 @@ function esCampoRequerido(value) {
  */
 function validarLogin() {
   const usernameInput = document.getElementById("username");
-  const roleInput = document.getElementById("user-role");
+  const passwordInput = document.getElementById("password");
 
   const usernameError = document.getElementById("username-error");
-  const roleError = document.getElementById("role-error");
+  const passwordError = document.getElementById("password-error");
 
   let esValido = true;
 
   limpiarError(usernameInput, usernameError);
-  limpiarError(roleInput, roleError);
+  limpiarError(passwordInput, passwordError);
 
   if (!esCampoRequerido(usernameInput.value)) {
     mostrarError(
       usernameInput,
       usernameError,
-      "El nombre de usuario es obligatorio."
+      "El usuario es obligatorio."
     );
     esValido = false;
   }
 
-  if (!esCampoRequerido(roleInput.value)) {
-    mostrarError(roleInput, roleError, "Debe seleccionar un rol de acceso.");
+  if (!esCampoRequerido(passwordInput.value)) {
+    mostrarError(
+      passwordInput,
+      passwordError,
+      "La contraseña es obligatoria."
+    );
     esValido = false;
   }
 
